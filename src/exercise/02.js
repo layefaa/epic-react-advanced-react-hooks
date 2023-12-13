@@ -44,8 +44,7 @@ function useAsync(asyncCallback, initialState, dependencies) {
         dispatch({type: 'rejected', error})
       },
     )
-    // the react-hooks/exhaustive-deps rule. We'll fix this in an extra credit.}, [dependencies])
-  }, dependencies)
+  }, [asyncCallback])
 
   return state
 }
@@ -54,13 +53,15 @@ function useAsync(asyncCallback, initialState, dependencies) {
 
 function PokemonInfo({pokemonName}) {
 
-  const state = useAsync(() => {
+  const asyncCallback = React.useCallback(()=>{
     if (!pokemonName) {
       return
     }
     return fetchPokemon(pokemonName)
-  }, {status: pokemonName ? "pending" : "idle"}, [pokemonName])
-  // 🐨 this will change from "pokemon" to "data"
+  },[pokemonName])
+
+  const state = useAsync(asyncCallback, {status: pokemonName ? "pending" : "idle"})
+
   const {data:pokemon, status, error} = state
 
   switch (status) {
