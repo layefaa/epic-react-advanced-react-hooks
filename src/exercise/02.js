@@ -3,6 +3,7 @@
 
 import * as React from 'react'
 import {fetchPokemon, PokemonDataView, PokemonErrorBoundary, PokemonForm, PokemonInfoFallback} from '../pokemon'
+import {useCallback} from 'react'
 
 // 🐨 this is going to be our generic asyncReducer
 function asyncReducer(state, action) {
@@ -22,7 +23,7 @@ function asyncReducer(state, action) {
   }
 }
 
-function useAsync(asyncCallback, initialState, dependencies) {
+function useAsync( initialState,) {
   const [state, dispatch] = React.useReducer(asyncReducer, {
     status: 'idle',
     data: null,
@@ -30,11 +31,7 @@ function useAsync(asyncCallback, initialState, dependencies) {
     ...initialState
   })
 
-  React.useEffect(() => {
-    const promise = asyncCallback()
-    if (!promise) {
-      return
-    }
+  const run = useCallback((promise)=>{
     dispatch({type: 'pending'})
     promise.then(
       data => {
@@ -44,25 +41,27 @@ function useAsync(asyncCallback, initialState, dependencies) {
         dispatch({type: 'rejected', error})
       },
     )
-  }, [asyncCallback])
+  },[dispatch])
 
-  return state
+  return {...state, run}
 }
 
 
 
 function PokemonInfo({pokemonName}) {
+  const state = useAsync({status: pokemonName ? "pending" : "idle"})
+  const {data:pokemon, status, error, run} = state
 
-  const asyncCallback = React.useCallback(()=>{
+  React.useEffect(()=>{
     if (!pokemonName) {
       return
     }
-    return fetchPokemon(pokemonName)
-  },[pokemonName])
+    return run(fetchPokemon(pokemonName))
+  },[pokemonName, run])
 
-  const state = useAsync(asyncCallback, {status: pokemonName ? "pending" : "idle"})
 
-  const {data:pokemon, status, error} = state
+
+
 
   switch (status) {
     case 'idle':
